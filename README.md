@@ -1,7 +1,7 @@
-# 🧹 Data Cleaning OpenEnv
 
-An **OpenEnv** environment where an AI agent learns to clean messy real-world datasets,
-one operation at a time.
+# 🏓 Catch Game Learning Agent OpenEnv
+
+An **OpenEnv** environment where an AI agent learns to play the Catch game—a simple grid-based game where the agent controls a paddle to catch a falling ball. This project is designed for reinforcement learning research and benchmarking, providing a clean API, baseline agents, and a FastAPI server for easy experimentation.
 
 [![OpenEnv](https://img.shields.io/badge/OpenEnv-compatible-blue)](https://github.com/meta-pytorch/OpenEnv)
 [![Python 3.11](https://img.shields.io/badge/python-3.11-green)](https://python.org)
@@ -9,56 +9,58 @@ one operation at a time.
 
 ---
 
+
 ## 🌍 What is this environment?
 
-Data quality is a billion-dollar problem.  Before any ML model can train on real data,
-engineers spend 60–80% of their time cleaning it.  This environment simulates that workbench.
+The Catch environment simulates a classic reinforcement learning task:
 
-The agent receives a **messy Pandas DataFrame** and must apply cleaning operations step by step
-to bring data quality above a threshold.  Every action returns a **partial reward** proportional
-to the improvement in data quality — so the agent gets a learning signal on every step, not
-just at the end.
+- **Grid**: 10 rows × 5 columns
+- **Agent**: Controls a paddle at the bottom row
+- **Goal**: Move the paddle left or right to catch a falling ball
+- **Reward**: +1 for catching the ball, 0 otherwise
+
+This environment is ideal for testing RL algorithms, curriculum learning, and agent benchmarking. It is fully compatible with OpenEnv standards and includes a typed HTTP client, server, and several baseline agents.
+
+# 🏓 Catch Environment OpenEnv
+
+An **OpenEnv** environment where an AI agent learns to play the Catch game, a grid-based simulation where the agent controls a paddle to catch a falling ball. The environment is designed for reinforcement learning experiments and includes:
+
+- **Typed HTTP Client**: For interacting with the environment server.
+- **FastAPI Server**: Hosting the Catch environment simulation.
+- **Baseline Agents**: Smart, Random, and Learning agents for benchmarking.
 
 ---
 
-## 🎯 Three Tasks (Easy → Medium → Hard)
+## 🌍 What is this environment?
 
-| Task ID | Difficulty | Problems | Target Quality | Max Steps |
-|---------|-----------|----------|---------------|-----------|
-| `easy_missing_values` | 🟢 Easy | Missing values only | 0.90 | 15 |
-| `medium_type_and_string_errors` | 🟡 Medium | Missing + type errors + inconsistent strings | 0.85 | 20 |
-| `hard_full_pipeline` | 🔴 Hard | Missing + outliers + strings + whitespace + duplicates | 0.90 | 30 |
+The Catch environment simulates a simple grid-based game:
+- **Grid**: 10 rows × 5 columns.
+- **Objective**: Move the paddle to catch the falling ball.
+- **Reward**: +1 for catching the ball, 0 otherwise.
+
+This environment is compatible with OpenEnv standards and can be used for reinforcement learning experiments.
+
+---
+
+## 🎯 Three Agents
+
+| Agent          | Description                          |
+|----------------|--------------------------------------|
+| SmartAgent     | Always moves toward the ball column. |
+| RandomAgent    | Picks actions randomly.              |
+| LearningAgent  | Learns to act like SmartAgent over time. |
 
 ---
 
 ## 📐 Action Space
 
-Each step the agent sends **one** cleaning operation:
+Each step, the agent sends one action:
 
-```json
-{
-  "operation": "fill_missing_mean",
-  "column": "Age",
-  "params": {}
-}
-```
-
-**Available operations:**
-
-| Operation | What it does | Needs `column`? | Needs `params`? |
-|-----------|-------------|----------------|----------------|
-| `fill_missing_mean` | Fill NaN with column mean | ✅ | ❌ |
-| `fill_missing_mode` | Fill NaN with column mode | ✅ | ❌ |
-| `fill_missing_value` | Fill NaN with fixed value | ✅ | `{"value": X}` |
-| `drop_rows_with_na` | Drop rows with NaN in column | ✅ | ❌ |
-| `cast_column` | Change dtype | ✅ | `{"dtype": "int64"}` |
-| `strip_whitespace` | Remove leading/trailing spaces | ✅ | ❌ |
-| `normalize_case` | Standardise string case | ✅ | `{"mode": "title"}` |
-| `replace_value` | Replace bad value with correct one | ✅ | `{"old": X, "new": Y}` |
-| `clip_outliers` | Clip values to [mean ± k*std] | ✅ | `{"k": 2.0}` |
-| `drop_column` | Remove a column | ✅ | ❌ |
-| `rename_column` | Rename a column | ✅ | `{"new_name": "..."}` |
-| `submit` | Signal done, trigger grader | ❌ | ❌ |
+| Action ID | Action |
+|-----------|--------|
+| 0         | LEFT   |
+| 1         | STAY   |
+| 2         | RIGHT  |
 
 ---
 
@@ -69,52 +71,27 @@ Each `step()` and `reset()` returns:
 ```python
 {
   "done": false,
-  "reward": 0.12,                 # reward for THIS step
-  "cumulative_reward": 0.35,
-
-  # Dataset statistics
-  "num_rows": 60,
-  "num_cols": 5,
-  "column_names": ["EmployeeID", "Name", "Department", "Age", "Salary"],
-  "dtypes": {"Age": "float64", "Salary": "float64", ...},
-  "missing_counts": {"Age": 12, "Salary": 9},
-  "total_missing": 21,
-  "duplicate_rows": 0,
-
-  # Quality scores (0.0 – 1.0) ← partial progress signals
-  "completeness_score": 0.65,
-  "consistency_score":  1.0,
-  "uniqueness_score":   1.0,
-  "overall_quality":    0.81,
-
-  # Feedback on last action
-  "last_action": "fill_missing_mean",
-  "last_action_result": "success",
-  "error_message": "",
-
-  # Task context
-  "task_id": "easy_missing_values",
-  "target_quality": 0.90
+  "reward": 0.0,
+  "ball_row": 5,
+  "ball_col": 2,
+  "paddle_col": 3,
+  "episode_step": 10,
+  "caught": false
 }
 ```
 
 ---
 
-## 🏆 Reward Function
 
+## 🐳 Docker
+
+```bash
+# Build
+docker build -t catch-env .
+
+# Run
+docker run -p 7860:7860 catch-env
 ```
-reward = overall_quality_after - overall_quality_before
-
-overall_quality = 0.4 * completeness
-               + 0.3 * consistency
-               + 0.3 * uniqueness
-```
-
-- **Positive reward** → the action improved data quality
-- **-0.02** → no-op action (nothing changed)
-- **-0.05** → invalid action (unknown operation, wrong column, etc.)
-
-This gives the agent a learning signal on **every step**, not just at the end.
 
 ---
 
@@ -130,66 +107,13 @@ pip install -r requirements.txt
 
 ```bash
 cd src
-TASK_ID=easy_missing_values uvicorn envs.catch_env.server.app:app --port 8000 --reload
+uvicorn envs.catch_env.server.app:app --port 8000 --reload
 ```
 
 ### 3. Run the baselines
 
 ```bash
-python baseline.py --base-url http://localhost:8000 --task easy_missing_values
-```
-
-### 4. Use the typed client in your code
-
-```python
-from envs.catch_env.client import DataCleaningEnv
-from envs.catch_env.models import DataCleaningAction
-
-env = DataCleaningEnv(base_url="http://localhost:8000")
-
-result = env.reset()
-print(f"Initial quality: {result.observation.overall_quality:.2f}")
-print(f"Missing values:  {result.observation.total_missing}")
-
-# Apply a cleaning operation
-result = env.step(DataCleaningAction(
-    operation="fill_missing_mean",
-    column="Age"
-))
-print(f"Reward: {result.reward:+.3f}")
-print(f"Quality now: {result.observation.overall_quality:.2f}")
-
-# Submit when done
-result = env.step(DataCleaningAction(operation="submit"))
-print(f"Final grader score: {result.observation.overall_quality:.2f}")
-```
-
----
-
-## 🐳 Docker
-
-```bash
-# Build
-docker build -t data-cleaning-env .
-
-# Run (easy task)
-docker run -e TASK_ID=easy_missing_values -p 7860:7860 data-cleaning-env
-
-# Run (hard task)
-docker run -e TASK_ID=hard_full_pipeline -p 7860:7860 data-cleaning-env
-```
-
----
-
-## 🤗 Hugging Face Spaces Deployment
-
-1. Create a new Space on HF (Docker type)
-2. Push this repo to the Space
-3. The server starts automatically on port 7860
-4. Your client connects to `https://<username>-<space-name>.hf.space`
-
-```python
-env = DataCleaningEnv(base_url="https://your-username-data-cleaning-env.hf.space")
+python baseline.py --base-url http://localhost:8000
 ```
 
 ---
@@ -205,12 +129,12 @@ catch_env/
 │   └── envs/
 │       └── catch_env/
 │           ├── models.py          ← Typed Action, Observation, State
-│           ├── tasks.py           ← 3 tasks + agent graders
-│           ├── client.py          ← DataCleaningEnv (what your training imports)
+│           ├── tasks.py           ← Tasks + agent graders
+│           ├── client.py          ← CatchEnv client
 │           └── server/
 │               ├── environment.py ← Core simulation logic
 │               └── app.py         ← FastAPI server
-├── baseline.py                    ← Reproducible baseline scores
+├── baseline.py                    ← Baseline agents
 ├── openenv.yaml                   ← Environment spec
 ├── Dockerfile
 ├── requirements.txt
@@ -221,11 +145,11 @@ catch_env/
 
 ## 📊 Baseline Scores (seed=42)
 
-| Agent | Task | Quality | Success Rate |
-|-------|------|---------|-------------|
-| RandomAgent | easy | ~0.70 | ~20% |
-| HeuristicAgent | easy | ~0.95 | ~100% |
-| RandomAgent | medium | ~0.55 | ~0% |
-| HeuristicAgent | medium | ~0.88 | ~80% |
-| RandomAgent | hard | ~0.45 | ~0% |
-| HeuristicAgent | hard | ~0.82 | ~60% |
+| Agent         | Catch Rate |
+|---------------|------------|
+| SmartAgent    | ~100%      |
+| RandomAgent   | ~20%       |
+| LearningAgent | Improves over time |
+
+---
+python baseline.py --base-url http://localhost:8000 --task easy_missing_values
