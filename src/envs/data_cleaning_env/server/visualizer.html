@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Catch — OpenEnv Visualizer</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0f0f12; color: #e8e8e8; font-family: 'Courier New', monospace;
+         display: flex; flex-direction: column; align-items: center; padding: 2rem 1rem; min-height: 100vh; }
+  h1  { font-size: 1.3rem; font-weight: 600; letter-spacing: 2px; color: #a78bfa; margin-bottom: 0.3rem; }
+  .sub { font-size: 0.75rem; color: #6b7280; margin-bottom: 1.5rem; letter-spacing: 1px; }
+
+  /* Grid */
+  #grid-wrap { position: relative; }
+  canvas { display: block; border-radius: 8px; }
+
+  /* Stats bar */
+  .stats { display: flex; gap: 1.5rem; margin: 1rem 0; flex-wrap: wrap; justify-content: center; }
+  .stat  { background: #1a1a22; border: 1px solid #2a2a38; border-radius: 8px;
+           padding: 0.5rem 1rem; text-align: center; min-width: 90px; }
+  .stat .label { font-size: 0.65rem; color: #6b7280; letter-spacing: 1px; text-transform: uppercase; }
+  .stat .value { font-size: 1.2rem; font-weight: 700; color: #a78bfa; }
+  .stat .value.green { color: #34d399; }
+  .stat .value.red   { color: #f87171; }
+
+  /* Controls */
+  .controls { display: flex; gap: 0.75rem; margin: 0.75rem 0; flex-wrap: wrap; justify-content: center; }
+  button { background: #1a1a22; border: 1px solid #3a3a50; border-radius: 8px; color: #e8e8e8;
+           cursor: pointer; font-family: inherit; font-size: 0.85rem; padding: 0.5rem 1.25rem;
+           transition: all 0.15s; letter-spacing: 1px; }
+  button:hover  { background: #2a2a38; border-color: #a78bfa; color: #a78bfa; }
+  button:active { transform: scale(0.96); }
+  button.primary { background: #4c1d95; border-color: #7c3aed; color: #ede9fe; }
+  button.primary:hover { background: #5b21b6; }
+
+  /* Action log */
+  #log { background: #1a1a22; border: 1px solid #2a2a38; border-radius: 8px;
+         width: 100%; max-width: 420px; height: 120px; overflow-y: auto;
+         padding: 0.5rem 0.75rem; font-size: 0.72rem; color: #9ca3af; margin-top: 0.75rem; }
+  #log p { margin: 2px 0; }
+  #log p.catch  { color: #34d399; font-weight: 700; }
+  #log p.miss   { color: #f87171; }
+  #log p.action { color: #a78bfa; }
+
+  /* Agent selector */
+  select { background: #1a1a22; border: 1px solid #3a3a50; border-radius: 8px; color: #e8e8e8;
+           padding: 0.45rem 0.75rem; font-family: inherit; font-size: 0.82rem; cursor: pointer; }
+
+  /* Status badge */
+  #status { font-size: 0.75rem; padding: 0.3rem 0.9rem; border-radius: 99px;
+            font-weight: 600; letter-spacing: 1px; margin-bottom: 0.5rem; }
+  #status.ok   { background: #064e3b; color: #34d399; }
+  #status.warn { background: #7f1d1d; color: #f87171; }
+  #status.idle { background: #1e1b4b; color: #a78bfa; }
+</style>
+</head>
+<body>
+
+<h1>⬛ CATCH — OpenEnv</h1>
+<p class="sub">OpenSpiel Catch · 10×5 grid · Pure Python · Local</p>
+<div id="status" class="idle">CONNECTING…</div>
+
+<canvas id="c" width="300" height="400"></canvas>
+
+<div class="stats">
+  <div class="stat"><div class="label">Step</div>   <div class="value" id="s-step">0</div></div>
+  <div class="stat"><div class="label">Reward</div>  <div class="value" id="s-rew">0.0</div></div>
+  <div class="stat"><div class="label">Catches</div> <div class="value green" id="s-catches">0</div></div>
+  <div class="stat"><div class="label">Episodes</div><div class="value" id="s-eps">0</div></div>
+  <div class="stat"><div class="label">Catch %</div> <div class="value" id="s-rate">0%</div></div>
+</div>
+
+<div style="display:flex;align-items:center;gap:0.75rem;margin:0.5rem 0;">
+  <label style="font-size:0.8rem;color:#6b7280;">Agent:</label>
+  <select id="agent-sel">
+    <option value="smart">Smart (follows ball)</option>
+    <option value="random">Random</option>
+    <option value="stay">Always stay</option>
+    <option value="learning">Learning (AI/ML)</option>
+    <option value="manual">Manual (keyboard)</option>
+  </select>
+  <label style="font-size:0.8rem;color:#6b7280;margin-left:0.5rem;">Speed:</label>
+  <select id="speed-sel">
+    <option value="600">Slow</option>
+    <option value="300" selected>Normal</option>
+    <option value="100">Fast</option>
+    <option value="30">Turbo</option>
+  </select>
+</div>
+
+<div class="controls">
+  <button id="btn-reset" class="primary" onclick="doReset()">⟳ New Episode</button>
+  <button id="btn-auto"  onclick="toggleAuto()">▶ Auto-play</button>
+  <button id="btn-left"  onclick="doStep(0)">← Left</button>
+  <button id="btn-stay"  onclick="doStep(1)">· Stay</button>
+  <button id="btn-right" onclick="doStep(2)">→ Right</button>
+  <button id="btn-ai" onclick="runAIAgent()" style="background:#2563eb;border-color:#2563eb;color:#fff;">🤖 Run AI/ML Agent</button>
+</div>
+<div id="ai-stats" style="margin-top:0.5rem;font-size:0.9rem;color:#a78bfa;"></div>
+
+<div id="log"><p style="color:#4b5563">— log —</p></div>
+
+<script>
+// ── Run AI/ML Agent (LearningAgent) ─────────────────────────────────────────
+async function runAIAgent() {
+  const agent = document.getElementById('agent-sel').value;
+  if (agent !== 'learning') {
+    alert('Select "Learning (AI/ML)" agent to run.');
+    return;
+  }
+  const episodes = prompt('How many episodes to run?', '10');
+  if (!episodes || isNaN(episodes) || episodes < 1) return;
+  document.getElementById('ai-stats').textContent = 'Running AI/ML agent...';
+  window._aiAgentRunning = true;
+  const res = await fetch('/run_agent', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({agent_name: 'learning', episodes: parseInt(episodes), max_steps: 20})
+  });
+  window._aiAgentRunning = false;
+  const stats = await res.json();
+  aiEpisodes += stats.episodes;
+  aiCatches += stats.catches;
+  document.getElementById('ai-stats').textContent =
+    `Episodes: ${aiEpisodes}, Catches: ${aiCatches}, Catch Rate: ${(aiEpisodes ? (aiCatches/aiEpisodes*100).toFixed(1) : '0.0')}%` +
+    (stats.history ? `, Smart Prob: [${stats.history.join(', ')}]` : '');
+}
+const ROWS = 10, COLS = 5;
+const CW = 300/COLS, RH = 400/ROWS;  // cell width/height
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+
+let state = { ball_row:0, ball_col:2, paddle_col:2, done:false,
+              reward:0, episode_step:0, caught:false };
+let autoPlay = false, autoTimer = null;
+let catches = 0, episodes = 0;
+let aiEpisodes = 0, aiCatches = 0;
+window._aiAgentRunning = false;
+
+// ── WebSocket ────────────────────────────────────────────────────────────────
+const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+const ws = new WebSocket(`${proto}://${location.host}/ws/visualize`);
+
+ws.onopen = () => setStatus('ok','CONNECTED');
+ws.onclose= () => setStatus('warn','DISCONNECTED');
+ws.onerror= () => setStatus('warn','ERROR');
+
+let _userReset = false;
+ws.onmessage = (e) => {
+  const d = JSON.parse(e.data);
+  state = d;
+  draw();
+  updateStats(d);
+  if (d.event === 'reset') {
+    if (_userReset) {
+      logMsg(`▶ Episode ${episodes}`, '');
+      _userReset = false;
+    }
+  }
+  if (d.done) {
+    const msg = d.caught ? '🎉 CAUGHT! +1' : '✗ Missed';
+    logMsg(msg, d.caught ? 'catch' : 'miss');
+    if (autoPlay) setTimeout(doReset, 400);
+  }
+};
+
+// ── Drawing ───────────────────────────────────────────────────────────────────
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Background
+  ctx.fillStyle = '#0f0f12';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Grid lines (subtle)
+  ctx.strokeStyle = '#1e1e28';
+  ctx.lineWidth = 0.5;
+  for (let r=0;r<=ROWS;r++) { ctx.beginPath(); ctx.moveTo(0,r*RH); ctx.lineTo(canvas.width,r*RH); ctx.stroke(); }
+  for (let c=0;c<=COLS;c++) { ctx.beginPath(); ctx.moveTo(c*CW,0); ctx.lineTo(c*CW,canvas.height); ctx.stroke(); }
+
+  const br = Math.min(state.ball_row  ?? 0, ROWS-1);
+  const bc =          state.ball_col  ?? 2;
+  const pc =          state.paddle_col?? 2;
+
+  // Ball trail (ghost)
+  for (let tr=0; tr < br; tr++) {
+    const alpha = 0.03 + (tr/br)*0.08;
+    ctx.fillStyle = `rgba(167,139,250,${alpha})`;
+    const margin = 10;
+    ctx.beginPath();
+    ctx.arc(bc*CW + CW/2, tr*RH + RH/2, CW/2 - margin, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // Ball
+  const ballX = bc*CW + CW/2;
+  const ballY = br*RH + RH/2;
+  const ballR = CW/2 - 8;
+
+  // Glow
+  const grd = ctx.createRadialGradient(ballX, ballY, 0, ballX, ballY, ballR*2);
+  grd.addColorStop(0, 'rgba(167,139,250,0.4)');
+  grd.addColorStop(1, 'rgba(167,139,250,0)');
+  ctx.fillStyle = grd;
+  ctx.beginPath();
+  ctx.arc(ballX, ballY, ballR*2, 0, Math.PI*2);
+  ctx.fill();
+
+  // Solid ball
+  ctx.fillStyle = state.done && state.caught ? '#34d399' :
+                  state.done ? '#f87171' : '#a78bfa';
+  ctx.beginPath();
+  ctx.arc(ballX, ballY, ballR, 0, Math.PI*2);
+  ctx.fill();
+
+  // Paddle
+  const px = pc*CW + 4;
+  const py = (ROWS-1)*RH + RH*0.3;
+  const pw = CW - 8;
+  const ph = RH * 0.4;
+  ctx.fillStyle = state.done && state.caught ? '#34d399' :
+                  state.done ? '#f87171' : '#7c3aed';
+  ctx.beginPath();
+  roundRect(ctx, px, py, pw, ph, 4);
+  ctx.fill();
+
+  // Labels on done
+  if (state.done) {
+    ctx.fillStyle = state.caught ? '#34d399' : '#f87171';
+    ctx.font = 'bold 22px Courier New';
+    ctx.textAlign = 'center';
+    ctx.fillText(state.caught ? 'CAUGHT!' : 'MISSED', canvas.width/2, canvas.height/2 - 10);
+  }
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.moveTo(x+r, y);
+  ctx.lineTo(x+w-r, y); ctx.arcTo(x+w,y, x+w,y+r, r);
+  ctx.lineTo(x+w, y+h-r); ctx.arcTo(x+w,y+h, x+w-r,y+h, r);
+  ctx.lineTo(x+r, y+h); ctx.arcTo(x,y+h, x,y+h-r, r);
+  ctx.lineTo(x, y+r); ctx.arcTo(x,y, x+r,y, r);
+  ctx.closePath();
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────────
+function updateStats(d) {
+  document.getElementById('s-step').textContent = d.episode_step ?? 0;
+  const rewEl = document.getElementById('s-rew');
+  rewEl.textContent = (d.reward ?? 0).toFixed(1);
+  rewEl.className = 'value' + (d.reward > 0 ? ' green' : '');
+  // Only increment catches for manual/auto-play, not AI agent runs
+  if (d.done && d.caught && !window._aiAgentRunning) catches++;
+  document.getElementById('s-catches').textContent = catches;
+  document.getElementById('s-eps').textContent     = episodes;
+  const rate = episodes > 0 ? Math.round(catches/episodes*100) : 0;
+  document.getElementById('s-rate').textContent    = rate + '%';
+}
+
+// ── Actions ───────────────────────────────────────────────────────────────────
+async function doReset() {
+  _userReset = true;
+  // Only increment episodes if previous episode was done (i.e., not at initial page load)
+  if (!window._aiAgentRunning && state.done) episodes++;
+  const r = await fetch('/reset', {method:'POST'});
+  // WS will receive broadcast — no need to parse response
+}
+
+async function doStep(action_id) {
+  if (state.done) { await doReset(); return; }
+  const names = ['← LEFT','· STAY','→ RIGHT'];
+  logMsg(names[action_id], 'action');
+  await fetch('/step', {method:'POST', headers:{'Content-Type':'application/json'},
+                        body: JSON.stringify({action_id})});
+}
+
+// ── Auto-play ─────────────────────────────────────────────────────────────────
+function toggleAuto() {
+  autoPlay = !autoPlay;
+  document.getElementById('btn-auto').textContent = autoPlay ? '⏸ Pause' : '▶ Auto-play';
+  if (autoPlay) scheduleNext(); else clearTimeout(autoTimer);
+}
+
+async function scheduleNext() {
+  if (!autoPlay) return;
+  const speed = parseInt(document.getElementById('speed-sel').value);
+  if (!state.done) {
+    const a = pickAction();
+    await doStep(a);
+  } else {
+    await doReset();
+  }
+  autoTimer = setTimeout(scheduleNext, speed);
+}
+
+function pickAction() {
+  const agent = document.getElementById('agent-sel').value;
+  if (agent === 'random') return [0,1,2][Math.floor(Math.random()*3)];
+  if (agent === 'stay')   return 1;
+  if (agent === 'smart') {
+    const bc = state.ball_col  ?? 2;
+    const pc = state.paddle_col?? 2;
+    if (pc < bc) return 2;
+    if (pc > bc) return 0;
+    return 1;
+  }
+  return 1; // manual fallback
+}
+
+// ── Keyboard (manual mode) ────────────────────────────────────────────────────
+document.addEventListener('keydown', (e) => {
+  if (document.getElementById('agent-sel').value !== 'manual') return;
+  if (e.key === 'ArrowLeft')  doStep(0);
+  if (e.key === 'ArrowRight') doStep(2);
+  if (e.key === 'ArrowUp' || e.key === ' ') doStep(1);
+});
+
+// ── Log ───────────────────────────────────────────────────────────────────────
+function logMsg(msg, cls) {
+  const log = document.getElementById('log');
+  const p = document.createElement('p');
+  p.className = cls;
+  p.textContent = msg;
+  log.appendChild(p);
+  log.scrollTop = log.scrollHeight;
+  while (log.children.length > 60) log.removeChild(log.firstChild);
+}
+
+function setStatus(cls, txt) {
+  const el = document.getElementById('status');
+  el.className = cls;
+  el.textContent = txt;
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+draw();
+doReset();
+</script>
+</body>
+</html>

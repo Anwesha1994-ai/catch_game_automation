@@ -1,0 +1,151 @@
+# openenv.yaml
+# -------------
+# OpenEnv environment specification file.
+# This tells the OpenEnv registry what this environment contains.
+
+name: data-cleaning-env
+version: "1.0.0"
+description: >
+  A real-world data cleaning environment where an AI agent learns to fix
+  messy tabular datasets step by step. The agent applies operations like
+  filling missing values, fixing dtypes, normalising strings, clipping
+  outliers, and removing duplicates. Rewards are given for measurable
+  improvements in data quality (completeness, consistency, uniqueness).
+
+author: your-name
+license: MIT
+
+# ── Server ────────────────────────────────────────────────────────────────
+server:
+  framework: fastapi
+  port: 7860                       # HF Spaces default
+  entry_point: envs.data_cleaning_env.server.app:app
+  dockerfile: Dockerfile
+
+# ── Environment variables ─────────────────────────────────────────────────
+environment_variables:
+  TASK_ID:
+    description: Which task to run
+    default: easy_missing_values
+    choices:
+      - easy_missing_values
+      - medium_type_and_string_errors
+      - hard_full_pipeline
+
+# ── API ───────────────────────────────────────────────────────────────────
+api:
+  reset:
+    method: POST
+    path: /reset
+    description: Start a new episode with a fresh messy dataset
+  step:
+    method: POST
+    path: /step
+    description: Apply one cleaning operation
+    body_example:
+      operation: fill_missing_mean
+      column: Age
+  state:
+    method: GET
+    path: /state
+    description: Get current episode metadata
+
+# ── Action space ─────────────────────────────────────────────────────────
+action_space:
+  type: discrete_structured
+  description: One cleaning operation per step
+  fields:
+    operation:
+      type: string
+      choices:
+        - drop_column
+        - rename_column
+        - reorder_columns
+        - fill_missing_mean
+        - fill_missing_mode
+        - fill_missing_value
+        - drop_rows_with_na
+        - cast_column
+        - strip_whitespace
+        - normalize_case
+        - replace_value
+        - clip_outliers
+        - submit
+    column:
+      type: string
+      optional: true
+      description: Column name to operate on (not needed for submit)
+    params:
+      type: dict
+      optional: true
+      description: Extra parameters (e.g. dtype, mode, value)
+
+# ── Observation space ─────────────────────────────────────────────────────
+observation_space:
+  type: structured
+  fields:
+    done:               { type: bool }
+    reward:             { type: float, range: [-0.1, 1.0] }
+    cumulative_reward:  { type: float }
+    num_rows:           { type: int }
+    num_cols:           { type: int }
+    column_names:       { type: list[str] }
+    dtypes:             { type: dict[str, str] }
+    missing_counts:     { type: dict[str, int] }
+    total_missing:      { type: int }
+    duplicate_rows:     { type: int }
+    completeness_score: { type: float, range: [0.0, 1.0] }
+    consistency_score:  { type: float, range: [0.0, 1.0] }
+    uniqueness_score:   { type: float, range: [0.0, 1.0] }
+    overall_quality:    { type: float, range: [0.0, 1.0] }
+    last_action:        { type: str }
+    last_action_result: { type: str, choices: [success, invalid, no_change, episode_done] }
+    error_message:      { type: str }
+    task_id:            { type: str }
+    task_description:   { type: str }
+    target_quality:     { type: float }
+
+# ── Reward function ───────────────────────────────────────────────────────
+reward_function:
+  type: incremental_quality_delta
+  description: >
+    Reward = change in overall_quality after each step.
+    overall_quality = 0.4 * completeness + 0.3 * consistency + 0.3 * uniqueness.
+    Invalid actions: -0.05.  No-op actions: -0.02.  Submit triggers grader.
+  range: [-0.1, 1.0]
+
+# ── Tasks ─────────────────────────────────────────────────────────────────
+tasks:
+  - id: easy_missing_values
+    difficulty: easy
+    description: >
+      Fill missing values in an employee dataset (Age, Salary columns).
+      Only one type of problem: missing values.
+    target_quality: 0.90
+    max_steps: 15
+    grader: completeness-weighted
+
+  - id: medium_type_and_string_errors
+    difficulty: medium
+    description: >
+      Fix a customer dataset with missing values, wrong dtypes (Income as
+      string), and inconsistent categorical strings (Gender, City).
+    target_quality: 0.85
+    max_steps: 20
+    grader: balanced-three-dimensions
+
+  - id: hard_full_pipeline
+    difficulty: hard
+    description: >
+      Clean a sales transaction dataset with ALL problem types:
+      missing values, outliers, inconsistent strings, whitespace, duplicates.
+    target_quality: 0.90
+    max_steps: 30
+    grader: strict-with-duplicate-penalty
+
+# ── Deployment ────────────────────────────────────────────────────────────
+deployment:
+  huggingface_spaces:
+    space_type: docker
+    hardware: cpu-basic
+    port: 7860
