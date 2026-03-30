@@ -1,11 +1,11 @@
 """
-envs/data_cleaning_env/client.py
+envs/catch_env/client.py
 -------------------------
 Typed HTTP client — mirrors OpenSpiel's OpenSpielEnv exactly.
 
 Usage:
-    from envs.data_cleaning_env.client import CatchEnv
-    from envs.data_cleaning_env.models import CatchAction
+    from envs.catch_env.client import CatchEnv
+    from envs.catch_env.models import CatchAction
 
     env = CatchEnv(base_url="http://localhost:8000")
     result = env.reset()
@@ -18,7 +18,7 @@ import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../"))
 
 from core.http_env_client import HTTPEnvClient, StepResult
-from envs.data_cleaning_env.models import CatchAction, CatchObservation, CatchState
+from envs.catch_env.models import CatchAction, CatchObservation, CatchState
 
 
 class CatchEnv(HTTPEnvClient[CatchAction, CatchObservation]):

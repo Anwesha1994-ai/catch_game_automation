@@ -1,5 +1,5 @@
 """
-envs/data_cleaning_env/server/environment.py
+envs/catch_env/server/environment.py
 --------------------------------------
 Pure-Python implementation of OpenSpiel's Catch game.
 No openspiel package needed — runs locally with zero extra deps.
@@ -28,7 +28,7 @@ import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../../"))
 
 from core.env_server import Environment
-from envs.data_cleaning_env.models import (
+from envs.catch_env.models import (
     COLS, ROWS,
     ACTION_LEFT, ACTION_RIGHT, ACTION_STAY,
     CatchAction, CatchObservation, CatchState,

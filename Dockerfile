@@ -1,4 +1,4 @@
-# envs/data_cleaning_env/server/Dockerfile
+# envs/catch_env/server/Dockerfile
 # -----------------------------------------
 # Builds the Data Cleaning OpenEnv server.
 #
@@ -32,5 +32,5 @@ EXPOSE 7860
 
 # ── Start the server ──────────────────────────────────────────────────────────
 # Port 7860 is required by Hugging Face Spaces
-CMD ["uvicorn", "envs.data_cleaning_env.server.app:app", \
+CMD ["uvicorn", "envs.catch_env.server.app:app", \
      "--host", "0.0.0.0", "--port", "7860"]

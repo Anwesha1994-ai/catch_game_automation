@@ -36,7 +36,7 @@ def create_fastapi_app(env: Environment) -> FastAPI:
 
     @app.post("/step")
     def step(payload: Dict[str, Any]):
-        from envs.data_cleaning_env.models import CatchAction
+        from envs.catch_env.models import CatchAction
         action = CatchAction(action_id=int(payload.get("action_id", 1)),
                              game_name=payload.get("game_name", "catch"))
         return vars(env.step(action))

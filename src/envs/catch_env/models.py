@@ -1,5 +1,5 @@
 """
-envs/data_cleaning_env/models.py
+envs/catch_env/models.py
 ------------------------
 Typed contracts that EXACTLY match the OpenSpiel Catch environment API.
 

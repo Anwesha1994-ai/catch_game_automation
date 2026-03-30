@@ -130,7 +130,7 @@ pip install -r requirements.txt
 
 ```bash
 cd src
-TASK_ID=easy_missing_values uvicorn envs.data_cleaning_env.server.app:app --port 8000 --reload
+TASK_ID=easy_missing_values uvicorn envs.catch_env.server.app:app --port 8000 --reload
 ```
 
 ### 3. Run the baselines
@@ -142,8 +142,8 @@ python baseline.py --base-url http://localhost:8000 --task easy_missing_values
 ### 4. Use the typed client in your code
 
 ```python
-from envs.data_cleaning_env.client import DataCleaningEnv
-from envs.data_cleaning_env.models import DataCleaningAction
+from envs.catch_env.client import DataCleaningEnv
+from envs.catch_env.models import DataCleaningAction
 
 env = DataCleaningEnv(base_url="http://localhost:8000")
 
@@ -197,13 +197,13 @@ env = DataCleaningEnv(base_url="https://your-username-data-cleaning-env.hf.space
 ## 📁 Project Structure
 
 ```
-data_cleaning_env/
+catch_env/
 ├── src/
 │   ├── core/
 │   │   ├── env_server.py          ← Base classes (Environment, Action, Observation)
 │   │   └── http_env_client.py     ← Base HTTP client
 │   └── envs/
-│       └── data_cleaning_env/
+│       └── catch_env/
 │           ├── models.py          ← Typed Action, Observation, State
 │           ├── tasks.py           ← 3 tasks + agent graders
 │           ├── client.py          ← DataCleaningEnv (what your training imports)

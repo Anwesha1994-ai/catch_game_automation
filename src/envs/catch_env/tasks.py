@@ -1,5 +1,5 @@
 """
-envs/data_cleaning_env/tasks.py
+envs/catch_env/tasks.py
 --------------------------------
 Three tasks of increasing difficulty.  Each task defines:
   - A messy dataset (generated procedurally so it's reproducible)

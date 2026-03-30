@@ -1,5 +1,5 @@
 """
-envs/data_cleaning_env/server/app.py
+envs/catch_env/server/app.py
 -----------------------------
 FastAPI server wrapping the Catch environment.
 
@@ -14,8 +14,8 @@ Endpoints:
   GET  /visualize            → serves the HTML visualizer page
 
 Run:
-  cd data_cleaning_env/src
-  uvicorn envs.data_cleaning_env.server.app:app --port 8000 --reload
+  cd catch_env/src
+  uvicorn envs.catch_env.server.app:app --port 8000 --reload
 """
 
 import asyncio
@@ -29,7 +29,7 @@ from fastapi.responses import HTMLResponse, FileResponse
 from pydantic import BaseModel
 from typing import Optional
 
-from envs.data_cleaning_env.models import CatchAction, ROWS, COLS, ACTION_NAMES, ACTION_LEFT, ACTION_RIGHT, ACTION_STAY
+from envs.catch_env.models import CatchAction, ROWS, COLS, ACTION_NAMES, ACTION_LEFT, ACTION_RIGHT, ACTION_STAY
 # ── Simple agents for server-side demo ───────────────────────────────────────
 import random
 class SmartAgent:
@@ -126,7 +126,7 @@ async def run_agent(
     stats["catch_rate"] = stats["catches"] / stats["episodes"] if stats["episodes"] else 0.0
     return stats
 
-from envs.data_cleaning_env.server.environment import CatchEnvironment
+from envs.catch_env.server.environment import CatchEnvironment
 
 # ── Initialise environment ────────────────────────────────────────────────────
 env = CatchEnvironment()

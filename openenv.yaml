@@ -19,7 +19,7 @@ license: MIT
 server:
   framework: fastapi
   port: 7860                       # HF Spaces default
-  entry_point: envs.data_cleaning_env.server.app:app
+  entry_point: envs.catch_env.server.app:app
   dockerfile: Dockerfile
 
 # ── Environment variables ─────────────────────────────────────────────────

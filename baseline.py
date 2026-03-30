@@ -39,7 +39,7 @@ Runs 3 agents (Smart, Random, Always-Stay) and prints scores.
 
 Usage:
     # Terminal 1 — start server:
-    cd src && uvicorn envs.data_cleaning_env.server.app:app --port 8000
+    cd src && uvicorn envs.catch_env.server.app:app --port 8000
 
     # Terminal 2 — run baselines:
     python baseline.py
@@ -55,8 +55,8 @@ import time
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
-from envs.data_cleaning_env.client import CatchEnv
-from envs.data_cleaning_env.models import CatchAction, ROWS, COLS, ACTION_LEFT, ACTION_RIGHT, ACTION_STAY
+from envs.catch_env.client import CatchEnv
+from envs.catch_env.models import CatchAction, ROWS, COLS, ACTION_LEFT, ACTION_RIGHT, ACTION_STAY
 
 SEED = 42
 random.seed(SEED)
