@@ -120,7 +120,7 @@ pip install -r requirements.txt
 ### 3. Run the baselines
 
 ```bash
-python baseline.py --base-url http://localhost:7680
+python baseline.py --base-url http://localhost:7860
 ```
 
 ---
