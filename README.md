@@ -104,23 +104,23 @@ docker run -p 7860:7860 catch-env
 
 ## 🚀 Quick Start
 
-### 1. Install dependencies
+### 1. Setup Env
+```bash
+py -3.12 -m venv venv
+.\venv\Scripts\Activate.ps1
+```
+
+
+### 2. Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Start the server
-
-```bash
-cd src
-uvicorn envs.catch_env.server.app:app --port 8000 --reload
-```
-
 ### 3. Run the baselines
 
 ```bash
-python baseline.py --base-url http://localhost:8000
+python baseline.py --base-url http://localhost:7680
 ```
 
 ---
@@ -159,4 +159,3 @@ catch_env/
 | LearningAgent | Improves over time |
 
 ---
-python baseline.py --base-url http://localhost:8000 --task easy_missing_values
