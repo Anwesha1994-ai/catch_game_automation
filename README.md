@@ -1,3 +1,10 @@
+# 🎓 **AIML Project**
+
+**Name:** Anwesha Nandi  
+**Reg No.:** 25BCE11262  
+**Branch:** CSE (CORE)  
+**Year:** 1st Year B.Tech   
+---
 
 # 🏓 Catch Game Learning Agent OpenEnv
 

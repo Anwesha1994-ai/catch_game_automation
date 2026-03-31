@@ -1,36 +1,3 @@
-# ── Learning Agent ───────────────────────────────────────────────────────────
-
-class LearningAgent:
-    """
-    Starts as a random agent, but gradually learns to act like SmartAgent.
-    After each episode, it updates its policy to move the paddle toward the ball more often.
-    """
-    name = "LearningAgent (random→smart)"
-    def __init__(self):
-        self.smart_prob = 0.0  # Probability of using smart action
-        self.episodes = 0
-        self.history = []
-
-    def act(self, obs) -> CatchAction:
-        import random
-        # With probability smart_prob, act like SmartAgent
-        if random.random() < self.smart_prob:
-            if obs.paddle_col < obs.ball_col:
-                return CatchAction(action_id=ACTION_RIGHT)
-            if obs.paddle_col > obs.ball_col:
-                return CatchAction(action_id=ACTION_LEFT)
-            return CatchAction(action_id=ACTION_STAY)
-        # Otherwise, act randomly
-        return CatchAction(action_id=random.choice(obs.legal_actions))
-
-    def learn(self, reward):
-        # After each episode, increase smart_prob if reward was positive
-        self.episodes += 1
-        if reward > 0:
-            self.smart_prob = min(1.0, self.smart_prob + 0.15)
-        else:
-            self.smart_prob = min(1.0, self.smart_prob + 0.05)
-        self.history.append(self.smart_prob)
 """
 baseline.py
 -----------
@@ -57,6 +24,39 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
 from envs.catch_env.client import CatchEnv
 from envs.catch_env.models import CatchAction, ROWS, COLS, ACTION_LEFT, ACTION_RIGHT, ACTION_STAY
+
+# ── Learning Agent ───────────────────────────────────────────────────────────
+
+class LearningAgent:
+    """
+    Starts as a random agent, but gradually learns to act like SmartAgent.
+    After each episode, it updates its policy to move the paddle toward the ball more often.
+    """
+    name = "LearningAgent (random→smart)"
+    def __init__(self):
+        self.smart_prob = 0.0  # Probability of using smart action
+        self.episodes = 0
+        self.history = []
+
+    def act(self, obs) -> CatchAction:
+        # With probability smart_prob, act like SmartAgent
+        if random.random() < self.smart_prob:
+            if obs.paddle_col < obs.ball_col:
+                return CatchAction(action_id=ACTION_RIGHT)
+            if obs.paddle_col > obs.ball_col:
+                return CatchAction(action_id=ACTION_LEFT)
+            return CatchAction(action_id=ACTION_STAY)
+        # Otherwise, act randomly
+        return CatchAction(action_id=random.choice(obs.legal_actions))
+
+    def learn(self, reward):
+        # After each episode, increase smart_prob if reward was positive
+        self.episodes += 1
+        if reward > 0:
+            self.smart_prob = min(1.0, self.smart_prob + 0.15)
+        else:
+            self.smart_prob = min(1.0, self.smart_prob + 0.05)
+        self.history.append(self.smart_prob)
 
 SEED = 42
 random.seed(SEED)
